@@ -1,0 +1,10 @@
+{
+  "name": "Movie Recommender",
+  "short_name": "Movies",
+  "description": "Movie picks you'll like, and a group vote for movie night.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0d0b1a",
+  "theme_color": "#0d0b1a",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

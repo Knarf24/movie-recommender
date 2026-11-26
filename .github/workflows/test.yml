@@ -1,0 +1,20 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check the model still builds from the bundled MovieLens data
+        run: |
+          pip install numpy
+          python build_model.py
+      - name: Run the tests
+        run: python tests/test_recommender.py

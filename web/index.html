@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Movie Recommender</title>
+  <meta name="description" content="Rate a few movies and get picks you'll actually like, with the reason for each. Then run a movie night: everyone adds favourites, the app builds a shortlist that suits the whole group, and a ranked vote picks the winner. Python running in your browser, using 100,836 real MovieLens ratings.">
+  <meta name="theme-color" content="#0d0b1a">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="icon.svg" alt="" class="logo" width="44" height="44">
+      <div>
+        <h1>Movie Recommender</h1>
+        <p class="tag">Find your next movie, then let the group vote on movie night.</p>
+      </div>
+    </div>
+    <div class="mystats" id="mystats" title="Movies you have rated">⭐ <b id="ratedCount">0</b> rated</div>
+  </header>
+
+  <div id="loading" class="loading" role="status">
+    <div class="spinner"></div>
+    <div>
+      <b id="loadText">Starting Python…</b>
+      <div class="small">The recommender is written in Python and runs right here in your browser. The first visit downloads about 13 MB; after that it opens instantly, even offline.</div>
+    </div>
+  </div>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" data-tab="foryou" aria-selected="true">🎯 For you</button>
+    <button role="tab" data-tab="night">🍿 Movie night</button>
+    <button role="tab" data-tab="browse">🎞️ Browse</button>
+  </nav>
+
+  <main id="app" class="app" hidden>
+    <!-- FOR YOU -->
+    <section id="t-foryou" class="panel">
+      <div class="searchbox">
+        <input id="q" type="search" placeholder="Search a movie you've seen… (try “Toy Story” or “Matrix”)" autocomplete="off" aria-label="Search movies">
+        <div id="qres" class="qres" hidden></div>
+      </div>
+
+      <div id="starterWrap" class="block">
+        <div class="block-head">
+          <h2>Rate a few you've seen</h2>
+          <span class="small" id="starterHint">Tap the stars. Three or more ratings make your picks personal.</span>
+        </div>
+        <div class="grid compact" id="starter"></div>
+      </div>
+
+      <div class="block">
+        <div class="block-head">
+          <h2 id="recTitle">Top picks for you</h2>
+          <div class="filters">
+            <select id="fGenre" aria-label="Genre"><option value="">All genres</option></select>
+            <select id="fEra" aria-label="Era">
+              <option value="">Any year</option>
+              <option value="2010-2018">2010s</option>
+              <option value="2000-2009">2000s</option>
+              <option value="1990-1999">1990s</option>
+              <option value="1980-1989">1980s</option>
+              <option value="0-1979">Before 1980</option>
+            </select>
+          </div>
+        </div>
+        <p class="small" id="recNote"></p>
+        <div class="grid" id="recs"></div>
+      </div>
+
+      <details class="block mine">
+        <summary>Your ratings (<span id="mineCount">0</span>)</summary>
+        <div id="mine" class="minelist"></div>
+        <button class="ghost danger" id="clearRatings">Clear all my ratings</button>
+      </details>
+    </section>
+
+    <!-- MOVIE NIGHT -->
+    <section id="t-night" class="panel" hidden>
+      <ol class="steps" id="steps">
+        <li data-step="1" class="on">Who's watching</li>
+        <li data-step="2">Shortlist</li>
+        <li data-step="3">Vote</li>
+        <li data-step="4">Winner</li>
+      </ol>
+
+      <div id="n1" class="block">
+        <div class="block-head">
+          <h2>Who's watching?</h2>
+          <button class="ghost" id="demoNight">Try a demo night</button>
+        </div>
+        <form id="addPerson" class="row">
+          <input id="personName" maxlength="20" placeholder="Name" aria-label="Name" required>
+          <button class="primary">Add</button>
+        </form>
+        <div id="people" class="people"></div>
+        <div id="personEdit" class="personedit" hidden>
+          <p class="small">Add a few movies <b id="peName"></b> loves (or hates). Seen movies are left out of the shortlist.</p>
+          <div class="searchbox">
+            <input id="pq" type="search" placeholder="Search a movie…" autocomplete="off" aria-label="Search a movie for this person">
+            <div id="pqres" class="qres" hidden></div>
+          </div>
+          <div id="pfavs" class="chips"></div>
+        </div>
+        <div class="row wrap opts">
+          <label>Pick for the group by
+            <select id="strategy">
+              <option value="fair">Fair: high average, little disagreement</option>
+              <option value="average">Highest average enjoyment</option>
+              <option value="least_misery">No one suffers (least happy person)</option>
+            </select>
+          </label>
+          <label>Genre
+            <select id="nGenre"><option value="">Any</option></select>
+          </label>
+        </div>
+        <button class="primary big" id="buildShort" disabled>Build the shortlist →</button>
+      </div>
+
+      <div id="n2" class="block" hidden>
+        <div class="block-head">
+          <h2>Your shortlist</h2>
+          <button class="ghost" id="back1">← Edit people</button>
+        </div>
+        <p class="small" id="shortNote"></p>
+        <div id="shortlist" class="shortlist"></div>
+        <button class="primary big" id="startVote">Start the vote →</button>
+      </div>
+
+      <div id="n3" class="block" hidden>
+        <div class="block-head">
+          <h2 id="voteTitle">Vote</h2>
+          <span class="small" id="voteProgress"></span>
+        </div>
+        <div id="passPhone" class="pass">
+          <p>Pass the phone to <b id="voterName"></b>.</p>
+          <button class="primary big" id="imReady">I'm <span id="voterName2"></span>, show my ballot</button>
+        </div>
+        <div id="ballot" hidden>
+          <p class="small">Tap the movies in the order you'd like to watch them. Your first choice counts most. Nobody else sees your ballot.</p>
+          <div id="ballotList" class="ballot"></div>
+          <div class="row">
+            <button class="ghost" id="resetBallot">Start over</button>
+            <button class="primary" id="castVote" disabled>Cast my vote</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="n4" class="block" hidden>
+        <div id="winner" class="winner"></div>
+        <div class="row wrap">
+          <label>Counting method
+            <select id="method">
+              <option value="instant_runoff">Instant runoff (majority)</option>
+              <option value="borda">Borda count (points)</option>
+            </select>
+          </label>
+        </div>
+        <div id="rounds" class="rounds"></div>
+        <div class="row wrap">
+          <button class="ghost" id="revote">Vote again</button>
+          <button class="ghost" id="newNight">New movie night</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- BROWSE -->
+    <section id="t-browse" class="panel" hidden>
+      <div class="filters wide">
+        <select id="bGenre" aria-label="Genre"><option value="">All genres</option></select>
+        <select id="bSort" aria-label="Sort">
+          <option value="top">Best rated (fair average)</option>
+          <option value="popular">Most rated</option>
+          <option value="newest">Newest</option>
+        </select>
+        <select id="bEra" aria-label="Era">
+          <option value="">Any year</option>
+          <option value="2010-2018">2010s</option>
+          <option value="2000-2009">2000s</option>
+          <option value="1990-1999">1990s</option>
+          <option value="1980-1989">1980s</option>
+          <option value="0-1979">Before 1980</option>
+        </select>
+      </div>
+      <p class="small" id="bNote"></p>
+      <div class="grid" id="browse"></div>
+      <button class="ghost more" id="bMore" hidden>Show more</button>
+    </section>
+  </main>
+
+  <dialog id="detail" aria-labelledby="dTitle">
+    <button class="close" id="dClose" aria-label="Close">✕</button>
+    <div class="dhead">
+      <div class="poster big" id="dPoster"></div>
+      <div class="dinfo">
+        <h2 id="dTitle"></h2>
+        <div class="small" id="dAka"></div>
+        <div class="meta" id="dMeta"></div>
+        <div class="chips" id="dTags"></div>
+        <div class="yourrating">
+          <span class="small">Your rating</span>
+          <div class="stars" id="dStars"></div>
+        </div>
+        <div class="links" id="dLinks"></div>
+      </div>
+    </div>
+    <h3>More like this</h3>
+    <div class="strip" id="dSimilar"></div>
+    <h3>Comments <span class="small" id="dCount"></span></h3>
+    <form id="cForm" class="cform">
+      <input id="cName" maxlength="30" placeholder="Your name" aria-label="Your name">
+      <textarea id="cText" maxlength="400" rows="2" placeholder="What did you think?" aria-label="Comment"></textarea>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="cSpoiler"> Contains spoilers</label>
+        <button class="primary">Post</button>
+      </div>
+      <div class="small err" id="cErr"></div>
+    </form>
+    <div id="cList" class="clist"></div>
+    <p class="small">Comments are saved on this device only.</p>
+  </dialog>
+
+  <footer class="foot small">
+    <p>Recommendations from <a href="https://grouplens.org/datasets/movielens/" rel="noopener">MovieLens</a> data (100,836 ratings by 610 people, collected 1996 to 2018) by GroupLens Research at the University of Minnesota, used under its research licence. Not endorsed by GroupLens. Movie links go to TMDB and IMDb.</p>
+    <p>Written in Python, running in your browser with <a href="https://pyodide.org" rel="noopener">Pyodide</a>. Your ratings, votes and comments stay on this device. <a href="https://github.com/Knarf24/movie-recommender" rel="noopener">Source on GitHub</a>.</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script src="pyodide/pyodide.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

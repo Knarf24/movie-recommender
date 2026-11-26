@@ -1,0 +1,3 @@
+# recommender.py uses only the Python standard library (it also runs in your browser with Pyodide).
+# build_model.py, which turns the MovieLens CSVs into web/data/model.json, needs numpy:
+numpy>=1.26
