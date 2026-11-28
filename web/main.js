@@ -27,14 +27,22 @@ function call(name, args = {}) {
   return out.ok;
 }
 
+// The page shows right away; Python and the movie data load in the background, and the lists fill in
+// as soon as they are ready (about half a second on a repeat visit).
 async function start() {
+  $("app").hidden = false;
+  const want = (location.hash || "").slice(1);
+  previewTab(["foryou", "night", "browse"].includes(want) ? want : "foryou");
+  document.querySelectorAll("#tabs button").forEach((b) => { b.onclick = () => { if (!INFO) previewTab(b.dataset.tab); }; });
+  document.documentElement.dataset.ui = "ready";
   try {
-    py = await loadPyodide({ indexURL: new URL("pyodide/", location.href).href });
-    $("loadText").textContent = "Loading 100,836 movie ratings…";
-    const [code, model] = await Promise.all([
+    const [pyodide, code, model] = await Promise.all([
+      loadPyodideFast(),
       fetch("recommender.py").then((r) => { if (!r.ok) throw new Error("recommender.py missing"); return r.text(); }),
       fetch("data/model.json").then((r) => { if (!r.ok) throw new Error("model missing"); return r.text(); }),
     ]);
+    py = pyodide;
+    $("loadText").textContent = "Loading 100,836 movie ratings…";
     py.FS.writeFile("/home/pyodide/recommender.py", code);
     py.runPython("from recommender import call");
     INFO = call("load", { text: model });
@@ -44,8 +52,18 @@ async function start() {
     return;
   }
   $("loading").hidden = true;
-  $("app").hidden = false;
   setup();
+  if ($("q").value.trim()) $("q").dispatchEvent(new Event("input")); // typed while Python was starting
+  document.documentElement.dataset.py = "ready";
+  // Keeps Python saved on this device so the next visit starts without downloading it (see sw.js).
+  if ("serviceWorker" in navigator && isSecureContext) navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+// Switches the visible tab before Python is ready (the lists fill in once it is).
+function previewTab(name) {
+  document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  for (const t of ["foryou", "night", "browse"]) $("t-" + t).hidden = t !== name;
+  history.replaceState(null, "", "#" + name);
 }
 
 // ------------------------------------------------------------------ small DOM helper
@@ -575,7 +593,4 @@ function renderWinner() {
 }
 
 // ------------------------------------------------------------------ go
-if ("serviceWorker" in navigator && location.protocol === "https:") {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
-}
 start();
