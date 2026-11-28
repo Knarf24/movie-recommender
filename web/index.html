@@ -22,11 +22,11 @@
     <div class="mystats" id="mystats" title="Movies you have rated">⭐ <b id="ratedCount">0</b> rated</div>
   </header>
 
-  <div id="loading" class="loading" role="status">
+  <div id="loading" class="loading slim" role="status">
     <div class="spinner"></div>
     <div>
-      <b id="loadText">Starting Python…</b>
-      <div class="small">The recommender is written in Python and runs right here in your browser. The first visit downloads about 13 MB; after that it opens instantly, even offline.</div>
+      <b id="loadText">Starting Python in the background…</b>
+      <div class="small">The recommender is written in Python and runs right here in your browser. The first visit downloads Python once (about 13 MB); after that it is saved on this device and opens fast, even offline.</div>
     </div>
   </div>
 
@@ -231,6 +231,7 @@
   <div id="toast" class="toast" role="status" hidden></div>
 
   <script src="pyodide/pyodide.js"></script>
+  <script src="pyfast.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

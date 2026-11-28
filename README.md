@@ -57,7 +57,7 @@ Built by combining three GeeksforGeeks Python projects:
 | `recommender.py` | Search, recommendations, similar movies, group shortlist, vote counting and comment checks (Python, standard library only) |
 | `build_model.py` | Builds `web/data/model.json` from the MovieLens CSVs (needs numpy): `python build_model.py` |
 | `dataset/` | The MovieLens ml-latest-small CSV files and their licence |
-| `web/` | The page: `index.html`, `main.js` (drawing, taps, saving to the device), `style.css`, `sw.js` (offline), and Pyodide in `web/pyodide/` |
+| `web/` | The page: `index.html`, `main.js` (drawing, taps, saving to the device), `style.css`, `sw.js` (offline and saved Python), `pyfast.js` (quick Python start), and Pyodide in `web/pyodide/` |
 | `tests/test_recommender.py` | Tests: `python tests/test_recommender.py` |
 | `build_site.sh`, `.github/workflows/` | Builds `_site/` and publishes it to GitHub Pages; runs the tests on every push |
 
@@ -88,3 +88,17 @@ Konstan. 2015. The MovieLens Datasets: History and Context. ACM Transactions on 
 (TiiS) 5, 4: 19:1–19:19. https://doi.org/10.1145/2827872
 
 Code: MIT. Pyodide is MPL-2.0.
+
+## Fast loading
+
+The page shows straight away and Python starts in the background, so nothing waits on a
+"Starting Python" screen. Anything that needs Python simply waits for it if you are quicker.
+
+- **Saved on the device** (`web/sw.js`): after the first visit, Python (Pyodide) and its packages are kept in
+  the browser, so a refresh or a later visit doesn't download them again. Every app on the same site shares
+  that one saved copy. The app's own files are still fetched fresh, so updates show up right away.
+- **Quick restart** (`web/pyfast.js`): the first visit also saves a snapshot of a freshly started Python.
+  Later visits restore it instead of starting Python from scratch (about 1.2 s down to 0.3 s on a laptop).
+  If the snapshot can't be used (for example after a Pyodide upgrade), Python starts normally and a new one
+  is saved.
+- `build_site.sh` writes the Pyodide version into `sw.js`, so upgrading `web/pyodide/` needs no other change.
